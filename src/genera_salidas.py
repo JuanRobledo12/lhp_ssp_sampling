@@ -16,6 +16,9 @@ from info_grupos import prefijos,grupos_normaliza
 
 warnings.filterwarnings("ignore")
 
+# Record the start time
+start_time = time.time()
+
 # add SISEPUEDE to path
 dir_py = pathlib.Path(os.path.realpath(".")).parents[1]
 if str(dir_py) not in sys.path:
@@ -52,6 +55,24 @@ importlib.reload(trfs)
 import sisepuede as si
 
 import pickle
+
+# Funciones
+def print_elapsed_time(start_time):
+
+    # Record the end time
+    end_time = time.time()
+
+    # Calculate and print the execution time
+    execution_time = end_time - start_time
+    print(f"------------------------ EXECUTION TIME: {execution_time} seconds ------------------------")
+
+def check_land_use_factor(ssp_object):
+    dict_scendata = ssp_object.generate_scenario_database_from_primary_key(0)
+    df_inputs_check = dict_scendata.get("iran") # Change the name of the country if running a different one
+    lndu_realloc_fact_df = ssp_object.model_attributes.extract_model_variable(df_inputs_check, "Land Use Yield Reallocation Factor")
+
+    if lndu_realloc_fact_df['lndu_reallocation_factor'].sum() > 0:
+        raise ValueError(" --------------- The sum of 'lndu_reallocation_factor' is greater than 0. Script terminated. -----------------")
 
 ### Cargamos datos de ejemplo de costa rica
 
@@ -135,7 +156,10 @@ ssp = si.SISEPUEDE(
         try_exogenous_xl_types_in_variable_specification = True,
     )
 
+# Checks if the land use reallocation factor is set to 0.0
+check_land_use_factor(ssp_object=ssp)
 
+# Create parameters dict for the model to run
 dict_run = {
         ssp.key_future: [0],
         ssp.key_design: [0],
@@ -160,6 +184,7 @@ df_out = ssp.read_output(None)
 df_out.to_csv(OUTPUTS_ESTRESADOS_FILE_PATH, index=False)
 df_estresado[campos_estresar].to_csv(INPUTS_ESTRESADOS_FILE_PATH, index=False)
 
+print_elapsed_time(start_time)
 
 #with open("contador.txt", "w") as file:
 #    file.write(f"{id_experimento + 1}\n")

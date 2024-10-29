@@ -5,7 +5,7 @@ final=$2
 
 while [ $i -le $final ];
 do
-    echo "Ejecutamos el experimento $i"
+    echo "------------ COMIENZA EJECUCION DEL EXPERIMENTO $i ------------"
     python genera_salidas.py $i
     ((i++))
 done
