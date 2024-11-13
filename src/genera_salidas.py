@@ -24,22 +24,24 @@ dir_py = pathlib.Path(os.path.realpath(".")).parents[1]
 if str(dir_py) not in sys.path:
     sys.path.append(str(dir_py))
 
-## Define paths
+## Define paths and global variables
 
 FILE_PATH = os.getcwd()
 build_path = lambda PATH : os.path.abspath(os.path.join(*PATH))
 
-DATA_PATH = build_path([FILE_PATH, "..", "datos"])
+DATA_PATH = build_path([FILE_PATH, "..", "data"])
 OUTPUT_PATH = build_path([FILE_PATH, "..", "output"])
 
 SSP_OUTPUT_PATH = build_path([OUTPUT_PATH, "ssp"])
 
 REAL_DATA_FILE_PATH = build_path([DATA_PATH, "real_data.csv"]) 
 
-SALIDAS_EXPERIMENTOS_PATH = build_path([OUTPUT_PATH, "experimentos"]) 
+SALIDAS_EXPERIMENTOS_PATH = build_path([OUTPUT_PATH, "experiments"]) 
 
-INPUTS_ESTRESADOS_PATH = build_path([SALIDAS_EXPERIMENTOS_PATH, "input_estresados"])
-OUTPUTS_ESTRESADOS_PATH = build_path([SALIDAS_EXPERIMENTOS_PATH, "output_estresados"])
+INPUTS_ESTRESADOS_PATH = build_path([SALIDAS_EXPERIMENTOS_PATH, "sim_inputs"])
+OUTPUTS_ESTRESADOS_PATH = build_path([SALIDAS_EXPERIMENTOS_PATH, "sim_outputs"])
+
+target_country = sys.argv[1]
 
 ##  IMPORT SISEPUEDE EXAMPLES AND TRANSFORMERS
 import sys 
@@ -66,9 +68,9 @@ def print_elapsed_time(start_time):
     execution_time = end_time - start_time
     print(f"------------------------ EXECUTION TIME: {execution_time} seconds ------------------------")
 
-def check_land_use_factor(ssp_object):
+def check_land_use_factor(ssp_object, target_country):
     dict_scendata = ssp_object.generate_scenario_database_from_primary_key(0)
-    df_inputs_check = dict_scendata.get("iran") # Change the name of the country if running a different one
+    df_inputs_check = dict_scendata.get(target_country) # Change the name of the country if running a different one
     lndu_realloc_fact_df = ssp_object.model_attributes.extract_model_variable(df_inputs_check, "Land Use Yield Reallocation Factor")
 
     if lndu_realloc_fact_df['lndu_reallocation_factor'].sum() > 0:
@@ -80,22 +82,25 @@ examples = SISEPUEDEExamples()
 cr = examples("input_data_frame")
 
 df_input = pd.read_csv(REAL_DATA_FILE_PATH)
-df_input["region"] = "iran"
+df_input["region"] = target_country
 df_input[list(set(cr.columns) - set(df_input.columns))] = cr[list(set(cr.columns) - set(df_input.columns))]
 
-campos_estresar = []
-for p in prefijos:
-    campos_estresar.extend(
-        [i for i in df_input.columns if p in i ]
-    )
+# campos_estresar = []
+# for p in prefijos:
+#     campos_estresar.extend(
+#         [i for i in df_input.columns if p in i ]
+#     )
 
+'''
+The sample scaled.pickle is generated with genera_muestra.py
+'''
 with open('sample_scaled.pickle', 'rb') as handle:
     sample_scaled = pickle.load(handle)
 
 #with open("contador.txt", "r") as file:
 #    id_experimento = int(file.readlines()[0].replace("\n",""))
 
-id_experimento = int(sys.argv[1])
+id_experimento = int(sys.argv[2])
 
 print(id_experimento)
     

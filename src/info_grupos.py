@@ -112,3 +112,23 @@ grupos_normaliza = [
 'frac_inen_energy_wood',
 
 ]
+
+frac_vars_special_cases_list = [
+    'frac_agrc_agriculture_production_lost',
+    'frac_agrc_production_lost_sent_to_msw',
+    'frac_enfu_transmission_loss_fuel_electricity',
+    'frac_fgtv_reduction_in_fugitive_leaks',
+    'frac_gnrl_eating_red_meat',
+    'frac_ippu_cement_clinker',
+    'frac_lndu_improved_grasslands',
+    'frac_lndu_proportion_grasslands_pasture',
+    'frac_lvst_n_in_dung',
+    'frac_sludge_compliant_treated_septic',
+    'frac_soil_gasm_n_volatilisation_organic_amendments_fertilizer',
+    'frac_soil_leachh_n_lost_to_leaching',
+    'frac_soil_synthetic_fertilizer_urea',
+    'frac_waso_isw_incinerated_recovered_for_energy',
+    'frac_waso_landfill_gas_recovered',
+    'frac_waso_lgc_recovered_for_energy',
+    'frac_waso_msw_incinerated_recovered_for_energy'
+]
