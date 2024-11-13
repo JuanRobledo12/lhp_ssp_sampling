@@ -130,5 +130,21 @@ frac_vars_special_cases_list = [
     'frac_waso_isw_incinerated_recovered_for_energy',
     'frac_waso_landfill_gas_recovered',
     'frac_waso_lgc_recovered_for_energy',
-    'frac_waso_msw_incinerated_recovered_for_energy'
+    'frac_waso_msw_incinerated_recovered_for_energy',
+    'frac_lndu_initial_croplands',
+    'frac_lndu_initial_forests_mangroves',
+    'frac_lndu_initial_forests_primary',
+    'frac_lndu_initial_forests_secondary',
+    'frac_lndu_initial_grasslands',
+    'frac_lndu_initial_other',
+    'frac_lndu_initial_settlements',
+    'frac_lndu_initial_wetlands'
+]
+
+empirial_vars_to_avoid = [
+    'area_gnrl_country_ha',
+    'gdp_mmm_usd',
+    'occrateinit_gnrl_occupancy',
+    'population_gnrl_rural',
+    'population_gnrl_urban'
 ]
