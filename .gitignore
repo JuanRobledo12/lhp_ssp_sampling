@@ -1,2 +1,3 @@
 __pycache__/
-output/experiments/**/*.csv
+output/experiments/sim_inputs/*.csv
+output/experiments/sim_outputs/*.csv
