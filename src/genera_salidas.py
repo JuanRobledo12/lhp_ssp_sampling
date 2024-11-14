@@ -1,3 +1,11 @@
+"""
+TODO:
+- Now we can take the special cases we added to info_grupos back to frac_vars.xlsx since we have them in cols to avoid.
+- The HelperFunctions can raise Errors or warning that help us identify null values, mismatching vars and things like that.
+- We can create the sim_inputs, sim_outputs folder automatically if they do not exist.
+- Add some safety guards to the argv params son the code raises an error if they aren't passed.
+"""
+
 import copy
 import datetime as dt
 import importlib # needed so that we can reload packages
