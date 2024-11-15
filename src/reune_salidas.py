@@ -11,6 +11,9 @@ if len(sys.argv) < 2:
     raise ValueError("No country name provided. Please pass a country name as a command-line argument.")
 
 
+country_name = sys.argv[1]
+print('Creating attributes and target variables csv files for ', country_name)
+
 ## Define paths
 
 FILE_PATH = os.getcwd()
@@ -65,8 +68,6 @@ target_vars = list(mapping['Edgar_Class'].unique())
 new_vars = ['id'] + target_vars
 df_targets_final = df_targets_imputed[new_vars]
 
-country_name = sys.argv[1]
-
 # Create the directory if it does not exist
 if not os.path.exists(COMPLETE_DF_OUTPUT_PATH):
     os.makedirs(COMPLETE_DF_OUTPUT_PATH)
@@ -74,4 +75,4 @@ if not os.path.exists(COMPLETE_DF_OUTPUT_PATH):
 print(f"Saved a dataframes with shapes: {df_attributes.shape} and {df_targets_final.shape}")
 
 df_attributes.to_csv(os.path.join(COMPLETE_DF_OUTPUT_PATH, f'lhp_sampled_{country_name}_attributes.csv'), index = False)
-df_targets_final.to_csv(os.path.join(COMPLETE_DF_OUTPUT_PATH, f'lhp_sampled_{country_name}_targets.csv'))
+df_targets_final.to_csv(os.path.join(COMPLETE_DF_OUTPUT_PATH, f'lhp_sampled_{country_name}_targets.csv'), index = False)
