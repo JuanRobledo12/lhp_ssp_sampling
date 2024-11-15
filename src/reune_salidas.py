@@ -61,13 +61,16 @@ for i in range(len(mapping)):
     df_targets_imputed[mapping.loc[i, 'Edgar_Class']] = df_targets_imputed[vars_].sum(axis=1)
     # print(mapping.loc[i, 'Edgar_Class'])
 
+target_vars = mapping['Edgar_Class'].unique()
+df_targets_final = df_targets_imputed[target_vars]
+
 country_name = sys.argv[1]
 
 # Create the directory if it does not exist
 if not os.path.exists(COMPLETE_DF_OUTPUT_PATH):
     os.makedirs(COMPLETE_DF_OUTPUT_PATH)
 
-print(f"Saved a dataframes with shapes: {df_attributes.shape} and {df_targets.shape}")
+print(f"Saved a dataframes with shapes: {df_attributes.shape} and {df_targets_final.shape}")
 
 df_attributes.to_csv(os.path.join(COMPLETE_DF_OUTPUT_PATH, f'lhp_sampled_{country_name}_attributes.csv'), index = False)
-df_targets_imputed.to_csv(os.path.join(COMPLETE_DF_OUTPUT_PATH, f'lhp_sampled_{country_name}_targets.csv'))
+df_targets_final.to_csv(os.path.join(COMPLETE_DF_OUTPUT_PATH, f'lhp_sampled_{country_name}_targets.csv'))
