@@ -61,8 +61,9 @@ for i in range(len(mapping)):
     df_targets_imputed[mapping.loc[i, 'Edgar_Class']] = df_targets_imputed[vars_].sum(axis=1)
     # print(mapping.loc[i, 'Edgar_Class'])
 
-target_vars = mapping['Edgar_Class'].unique()
-df_targets_final = df_targets_imputed[target_vars]
+target_vars = list(mapping['Edgar_Class'].unique())
+new_vars = ['id'] + target_vars
+df_targets_final = df_targets_imputed[new_vars]
 
 country_name = sys.argv[1]
 
