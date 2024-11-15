@@ -35,8 +35,13 @@ class HelperFunctions:
         # Columns present in df2 but not in df1
         diff_in_df2 = columns_df2 - columns_df1
 
+        # Columns shared in both df1 and df2
+        shared_columns = columns_df1 & columns_df2
+
         print("Columns in df1 but not in df2:", diff_in_df1)
         print("Columns in df2 but not in df1:", diff_in_df2)
+        print("Columns shared in both df1 and df2:", shared_columns)
+
 
     def add_missing_cols(self, df1, df2):
         # Identify columns in df1 but not in df2
@@ -69,3 +74,21 @@ class HelperFunctions:
         #     print("Columns not removed:", remaining_cols)
 
         return col_names
+    
+    def get_cols_with_nans(self, df):
+
+        # Checking if there are any columns with null values in it
+        columns_with_na = df.columns[df.isna().any()].tolist()
+
+        print(columns_with_na)
+
+        return columns_with_na
+    
+    def create_id_column(self, df):
+
+        df['id'] = range(1, len(df) + 1)
+        # Assuming 'df' is your DataFrame and 'id' is the column you want to move to the front
+        cols = ['id'] + [col for col in df if col != 'id']
+        df = df[cols]
+
+        return df
