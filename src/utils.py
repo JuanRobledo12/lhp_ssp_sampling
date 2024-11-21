@@ -1,4 +1,5 @@
 import time
+import os
 
 class HelperFunctions:
     
@@ -92,3 +93,11 @@ class HelperFunctions:
         df = df[cols]
 
         return df
+    
+    def ensure_directory_exists(self, path):
+        """Creates a directory if it does not exist."""
+        if not os.path.exists(path):
+            os.makedirs(path)
+            print(f"Created directory: {path}")
+        else:
+            print(f"Directory already exists: {path}")

@@ -62,6 +62,9 @@ INPUTS_ESTRESADOS_PATH = build_path([SALIDAS_EXPERIMENTOS_PATH, "sim_inputs"])
 OUTPUTS_ESTRESADOS_PATH = build_path([SALIDAS_EXPERIMENTOS_PATH, "sim_outputs"])
 helper_functions = HelperFunctions()
 
+helper_functions.ensure_directory_exists(INPUTS_ESTRESADOS_PATH)
+helper_functions.ensure_directory_exists(OUTPUTS_ESTRESADOS_PATH)
+
 ### Load Costa Rica Example df to fill out data gaps in our input df
 
 examples = SISEPUEDEExamples()
@@ -79,14 +82,21 @@ pij_cols = [col for col in df_input.columns if col.startswith('pij')]
 cols_to_avoid = pij_cols + frac_vars_special_cases_list + columns_all_999 + empirial_vars_to_avoid
 campos_estresar = helper_functions.get_indicators_col_names(df_input, cols_with_issue=cols_to_avoid)
 
+# Defines upper bound to pass to GenerateLHCSample
+u_bound = 2
+
+# Defines number of sample vectors that GenerateLHCSample will create
+n_vectors = 100
+sampling_file_path = os.path.join('sampling_files', f'sample_scaled_{n_vectors}_{u_bound}.pickle') 
+
 # Generates sampling matrix
-if not os.path.exists('sample_scaled.pickle'):
+if not os.path.exists(sampling_file_path):
     # Generates sampling matrix if it does not exist
-    generate_sample = GenerateLHCSample(n=100, n_var=len(campos_estresar))
+    generate_sample = GenerateLHCSample(n_vectors, n_var=len(campos_estresar), u_bound=u_bound)
     generate_sample.generate_sample()
 
 # Load the sampling matrix
-with open('sample_scaled.pickle', 'rb') as handle:
+with open(sampling_file_path, 'rb') as handle:
     sample_scaled = pickle.load(handle)
 
 
