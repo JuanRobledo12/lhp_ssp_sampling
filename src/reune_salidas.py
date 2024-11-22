@@ -49,7 +49,7 @@ df_targets = helper_functions.create_id_column(df_targets.copy())
 # Imputing nan values
 # This can be changed to see if the RF performance is better
 df_targets_imputed = df_targets.apply(lambda col: col.fillna(col.median()) if col.dtype in ['float64', 'int64'] else col)
-
+df_targets_only_emission = df_targets_imputed[[col for col in df_targets_imputed.columns if col.startwith('emissions_co2e')]]
 # Before contatanating we have to create the target variables using the mapping_2.csv
 # Load mapping table
 mapping = pd.read_csv("mapping_2.csv")
@@ -76,3 +76,4 @@ print(f"Saved a dataframes with shapes: {df_attributes.shape} and {df_targets_fi
 
 df_attributes.to_csv(os.path.join(COMPLETE_DF_OUTPUT_PATH, f'lhp_sampled_{country_name}_attributes.csv'), index = False)
 df_targets_final.to_csv(os.path.join(COMPLETE_DF_OUTPUT_PATH, f'lhp_sampled_{country_name}_targets.csv'), index = False)
+df_targets_only_emission.to_csv(os.path.join(COMPLETE_DF_OUTPUT_PATH, f'lhp_sampled_{country_name}_features_co2e.csv'), index = False)
