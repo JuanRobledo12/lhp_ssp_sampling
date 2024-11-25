@@ -141,7 +141,7 @@ frac_vars_special_cases_list = [
     'frac_lndu_initial_wetlands'
 ]
 
-empirial_vars_to_avoid = [
+empirical_vars_to_avoid = [
     'area_gnrl_country_ha',
     'gdp_mmm_usd',
     'occrateinit_gnrl_occupancy',

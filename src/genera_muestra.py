@@ -10,7 +10,7 @@ import pickle
 import numpy as np 
 import os
 
-class GenerateLHCSample:
+class GenerateLHS:
 
     def __init__(self, n, n_var, u_bound):
         

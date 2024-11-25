@@ -22,7 +22,7 @@ import warnings
 from datetime import datetime
 warnings.filterwarnings("ignore")
 from info_grupos import empirial_vars_to_avoid, frac_vars_special_cases_list
-from genera_muestra import GenerateLHCSample
+from genera_muestra import GenerateLHS
 from utils import HelperFunctions
 
 ##  IMPORT SISEPUEDE EXAMPLES AND TRANSFORMERS
@@ -82,17 +82,17 @@ pij_cols = [col for col in df_input.columns if col.startswith('pij')]
 cols_to_avoid = pij_cols + frac_vars_special_cases_list + columns_all_999 + empirial_vars_to_avoid
 campos_estresar = helper_functions.get_indicators_col_names(df_input, cols_with_issue=cols_to_avoid)
 
-# Defines upper bound to pass to GenerateLHCSample
+# Defines upper bound to pass to GenerateLHS
 u_bound = 2
 
-# Defines number of sample vectors that GenerateLHCSample will create
+# Defines number of sample vectors that GenerateLHS will create
 n_vectors = 100
 sampling_file_path = os.path.join('sampling_files', f'sample_scaled_{n_vectors}_{u_bound}.pickle') 
 
 # Generates sampling matrix
 if not os.path.exists(sampling_file_path):
     # Generates sampling matrix if it does not exist
-    generate_sample = GenerateLHCSample(n_vectors, n_var=len(campos_estresar), u_bound=u_bound)
+    generate_sample = GenerateLHS(n_vectors, n_var=len(campos_estresar), u_bound=u_bound)
     generate_sample.generate_sample()
 
 # Load the sampling matrix
