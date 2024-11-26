@@ -146,5 +146,6 @@ empirical_vars_to_avoid = [
     'gdp_mmm_usd',
     'occrateinit_gnrl_occupancy',
     'population_gnrl_rural',
-    'population_gnrl_urban'
+    'population_gnrl_urban',
+    'lndu_reallocation_factor'
 ]

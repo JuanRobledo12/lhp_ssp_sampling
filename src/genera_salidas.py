@@ -21,7 +21,7 @@ from typing import Union
 import warnings
 from datetime import datetime
 warnings.filterwarnings("ignore")
-from info_grupos import empirial_vars_to_avoid, frac_vars_special_cases_list
+from info_grupos import empirical_vars_to_avoid, frac_vars_special_cases_list
 from genera_muestra import GenerateLHS
 from utils import HelperFunctions
 
@@ -42,9 +42,9 @@ start_time = time.time()
 
 ## Define paths and global variables
 target_country = sys.argv[1]
-id_experimento = int(sys.argv[2])
+experiment_id = int(sys.argv[2])
 
-print(f"Executing Python Script for {target_country} with experiment id {id_experimento}")
+print(f"Executing Python Script for {target_country} with experiment id {experiment_id}")
 
 FILE_PATH = os.getcwd()
 build_path = lambda PATH : os.path.abspath(os.path.join(*PATH))
@@ -72,76 +72,75 @@ cr = examples("input_data_frame")
 
 # Adding missing cols and setting correct format in our input df
 df_input = pd.read_csv(REAL_DATA_FILE_PATH)
-df_input = df_input.rename(columns={'period':'time_period'})
+df_input = df_input.rename(columns={'period': 'time_period'})
 df_input = helper_functions.add_missing_cols(cr, df_input.copy())
 df_input = df_input.drop(columns='iso_code3')
 
 # Obtain the column names that we are going to sample 
 columns_all_999 = df_input.columns[(df_input == -999).any()].tolist()
 pij_cols = [col for col in df_input.columns if col.startswith('pij')]
-cols_to_avoid = pij_cols + frac_vars_special_cases_list + columns_all_999 + empirial_vars_to_avoid
-campos_estresar = helper_functions.get_indicators_col_names(df_input, cols_with_issue=cols_to_avoid)
+cols_to_avoid = pij_cols + frac_vars_special_cases_list + columns_all_999 + empirical_vars_to_avoid
+cols_to_stress = helper_functions.get_indicators_col_names(df_input, cols_with_issue=cols_to_avoid)
 
 # Defines upper bound to pass to GenerateLHS
 u_bound = 2
 
 # Defines number of sample vectors that GenerateLHS will create
-n_vectors = 100
-sampling_file_path = os.path.join('sampling_files', f'sample_scaled_{n_vectors}_{u_bound}.pickle') 
+n_arrays = 100
+sampling_file_path = os.path.join('sampling_files', f'sample_scaled_{n_arrays}_{u_bound}.pickle') 
 
 # Generates sampling matrix
 if not os.path.exists(sampling_file_path):
     # Generates sampling matrix if it does not exist
-    generate_sample = GenerateLHS(n_vectors, n_var=len(campos_estresar), u_bound=u_bound)
+    generate_sample = GenerateLHS(n_arrays, n_var=len(cols_to_stress), u_bound=u_bound)
     generate_sample.generate_sample()
 
 # Load the sampling matrix
 with open(sampling_file_path, 'rb') as handle:
     sample_scaled = pickle.load(handle)
 
-
 # Creating new df with the sampled data
-df_estresado = df_input.copy()
-df_estresado[campos_estresar]  = (df_input[campos_estresar]*sample_scaled[id_experimento]).to_numpy()
+stressed_df = df_input.copy()
+stressed_df[cols_to_stress] = (df_input[cols_to_stress] * sample_scaled[experiment_id]).to_numpy()
 
-# Normalizing frac_ var groups to make sure they sum to 1
+# Normalizing frac_ var groups using softmax
 df_frac_vars = pd.read_excel('frac_vars.xlsx', sheet_name='frac_vars_no_special_cases')
 need_norm_prefix = df_frac_vars.frac_var_name_prefix.unique()
 
-for grupo in need_norm_prefix:
-    vars_grupo = [i for i in df_estresado.columns if grupo in i]
+for subgroup in need_norm_prefix:
+    subgroup_cols = [i for i in stressed_df.columns if subgroup in i]
     
     # Skip normalization for columns in cols_to_avoid
-    if any(col in cols_to_avoid for col in vars_grupo):
+    if any(col in cols_to_avoid for col in subgroup_cols):
         continue
 
-    # Apply conditional log transformation
-    df_estresado[vars_grupo] = df_estresado[vars_grupo].applymap(lambda y: -np.log(y) if y != 0 else 0)
-    
-    # Check if the sum is zero before normalizing
-    sum_values = df_estresado[vars_grupo].sum(axis=1)
-    df_estresado[vars_grupo] = df_estresado[vars_grupo].div(sum_values, axis=0).fillna(0)
+    # Apply softmax normalization
+    stressed_df[subgroup_cols] = stressed_df[subgroup_cols].apply(
+        lambda row: np.exp(row) / np.exp(row).sum(), axis=1
+    )
+
+# Special case for ce_problematic
+ce_problematic = [
+    'frac_waso_biogas_food',
+    'frac_waso_biogas_sludge',
+    'frac_waso_biogas_yard',
+    'frac_waso_compost_food',
+    'frac_waso_compost_methane_flared',
+    'frac_waso_compost_sludge',
+    'frac_waso_compost_yard'
+]
+
+# Apply softmax normalization
+stressed_df[ce_problematic] = stressed_df[ce_problematic].apply(
+    lambda row: np.exp(row) / np.exp(row).sum(), axis=1
+)
 
 
-# This is also an special case
-ce_problematic = ['frac_waso_biogas_food',
-                  'frac_waso_biogas_sludge',
-                  'frac_waso_biogas_yard',
-                  'frac_waso_compost_food',
-                  'frac_waso_compost_methane_flared',
-                  'frac_waso_compost_sludge',
-                  'frac_waso_compost_yard']
-
-# Apply conditional log transformation
-df_estresado[ce_problematic] = df_estresado[ce_problematic].applymap(lambda y: -np.log(y) if y != 0 else 0)
-# Check if the sum is zero before normalizing
-sum_values = df_estresado[ce_problematic].sum(axis=1)
-df_estresado[ce_problematic] = df_estresado[ce_problematic].div(sum_values, axis=0).fillna(0)
 
 # Load SSP objects with input data and transformation folders
 transformers = trf.transformers.Transformers(
     {},
-    df_input = df_estresado,
+    df_input = stressed_df,
 )
 
 ##  SETUP SOME SISEPUEDE STUFF
@@ -209,12 +208,12 @@ ssp.project_scenarios(
 
 
 # Saves input and output
-INPUTS_ESTRESADOS_FILE_PATH = build_path([INPUTS_ESTRESADOS_PATH, f"sim_input_{id_experimento}.csv"])
-OUTPUTS_ESTRESADOS_FILE_PATH = build_path([OUTPUTS_ESTRESADOS_PATH, f"sim_output_{id_experimento}.csv"])
+INPUTS_ESTRESADOS_FILE_PATH = build_path([INPUTS_ESTRESADOS_PATH, f"sim_input_{experiment_id}.csv"])
+OUTPUTS_ESTRESADOS_FILE_PATH = build_path([OUTPUTS_ESTRESADOS_PATH, f"sim_output_{experiment_id}.csv"])
 
 
 df_out = ssp.read_output(None)
 df_out.to_csv(OUTPUTS_ESTRESADOS_FILE_PATH, index=False)
-df_estresado[campos_estresar].to_csv(INPUTS_ESTRESADOS_FILE_PATH, index=False)
+stressed_df.to_csv(INPUTS_ESTRESADOS_FILE_PATH, index=False)
 
 helper_functions.print_elapsed_time(start_time)
