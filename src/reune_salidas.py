@@ -46,16 +46,16 @@ df_features = pd.concat([pd.read_csv(i).iloc[[0]] for i in glob.glob(INPUTS_ESTR
 df_features = helper_functions.create_id_column(df_features.copy())
 df_targets = helper_functions.create_id_column(df_targets.copy())
 
+df_targets_only_emission = df_targets[[col for col in df_targets.columns if col.startswith('emission_co2e_subsector')]]
+
 # Imputing nan values
-# This can be changed to see if the RF performance is better
-df_targets_imputed = df_targets.apply(lambda col: col.fillna(col.median()) if col.dtype in ['float64', 'int64'] else col)
-df_targets_only_emission = df_targets_imputed[[col for col in df_targets_imputed.columns if col.startswith('emission_co2e_subsector')]]
+df_targets_only_emission_imputed = df_targets_only_emission.apply(lambda col: col.fillna(col.median()) if col.dtype in ['float64', 'int64'] else col)
 
 # Create the directory if it does not exist
 if not os.path.exists(COMPLETE_DF_OUTPUT_PATH):
     os.makedirs(COMPLETE_DF_OUTPUT_PATH)
 
-print(f"Saved a dataframes with shapes: {df_features.shape}, {df_targets_only_emission.shape}")
+print(f"Saved a dataframes with shapes: {df_features.shape}, {df_targets_only_emission_imputed.shape}")
 
 df_features.to_csv(os.path.join(COMPLETE_DF_OUTPUT_PATH, f'lhs_sampled_{country_name}_features.csv'), index = False)
-df_targets_only_emission.to_csv(os.path.join(COMPLETE_DF_OUTPUT_PATH, f'lhs_sampled_{country_name}_targets.csv'), index = False)
+df_targets_only_emission_imputed.to_csv(os.path.join(COMPLETE_DF_OUTPUT_PATH, f'lhs_sampled_{country_name}_targets.csv'), index = False)

@@ -101,11 +101,16 @@ with open(sampling_file_path, 'rb') as handle:
 
 # Creating new df with the sampled data
 stressed_df = df_input.copy()
+
+# Apply sampling to create stressed data
 stressed_df[cols_to_stress] = (df_input[cols_to_stress] * sample_scaled[experiment_id]).to_numpy()
 
 # Normalizing frac_ var groups using softmax
 df_frac_vars = pd.read_excel('frac_vars.xlsx', sheet_name='frac_vars_no_special_cases')
 need_norm_prefix = df_frac_vars.frac_var_name_prefix.unique()
+
+random_scale = 1e-2  # Scale for random noise
+epsilon = 1e-6
 
 for subgroup in need_norm_prefix:
     subgroup_cols = [i for i in stressed_df.columns if subgroup in i]
@@ -113,6 +118,15 @@ for subgroup in need_norm_prefix:
     # Skip normalization for columns in cols_to_avoid
     if any(col in cols_to_avoid for col in subgroup_cols):
         continue
+
+    # Check if the sum of the group is zero or too small
+    group_sum = stressed_df[subgroup_cols].sum(axis=1)
+    is_zero_sum = group_sum < epsilon
+
+    # Add random variability for zero-sum groups
+    if is_zero_sum.any():
+        noise = np.random.uniform(0, random_scale, size=(is_zero_sum.sum(), len(subgroup_cols)))
+        stressed_df.loc[is_zero_sum, subgroup_cols] = noise
 
     # Apply softmax normalization
     stressed_df[subgroup_cols] = stressed_df[subgroup_cols].apply(
@@ -130,7 +144,7 @@ ce_problematic = [
     'frac_waso_compost_yard'
 ]
 
-# Apply softmax normalization
+# Apply softmax normalization for ce_problematic
 stressed_df[ce_problematic] = stressed_df[ce_problematic].apply(
     lambda row: np.exp(row) / np.exp(row).sum(), axis=1
 )
