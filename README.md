@@ -24,15 +24,15 @@ To generate simulations
 
 ```
 cd src
-bash run_sim_batch.sh {initial_sim_id} {final_sim_id} {country_name}
+bash run_sim_batch.sh {initial_sim_id} {final_sim_id} {country_name} {batch_id}
 # Example
-bash run_sim_batch.sh 0 100 croatia
+bash run_sim_batch.sh 0 100 croatia 1
 ```
 
 To group inputs and outputs
 ```
 cd src
-python3 reune_salidas.py {country_name}
+python3 reune_salidas.py {country_name} {batch_id}
 # Example
-python3 reune_salidas.py croatia
+python3 reune_salidas.py croatia 1
 ```

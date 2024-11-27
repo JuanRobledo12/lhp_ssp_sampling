@@ -43,8 +43,9 @@ start_time = time.time()
 ## Define paths and global variables
 target_country = sys.argv[1]
 experiment_id = int(sys.argv[2])
+batch_id = int(sys.argv[3])
 
-print(f"Executing Python Script for {target_country} with experiment id {experiment_id}")
+print(f"Executing Python Script for {target_country} with experiment id {experiment_id} for batch id {batch_id}")
 
 FILE_PATH = os.getcwd()
 build_path = lambda PATH : os.path.abspath(os.path.join(*PATH))
@@ -56,12 +57,13 @@ SSP_OUTPUT_PATH = build_path([OUTPUT_PATH, "ssp"])
 
 REAL_DATA_FILE_PATH = build_path([DATA_PATH, "real_data.csv"]) 
 
-SALIDAS_EXPERIMENTOS_PATH = build_path([OUTPUT_PATH, "experiments"]) 
+SALIDAS_EXPERIMENTOS_PATH = build_path([OUTPUT_PATH, f"experiments_batch_{target_country}_{batch_id}"]) 
 
 INPUTS_ESTRESADOS_PATH = build_path([SALIDAS_EXPERIMENTOS_PATH, "sim_inputs"])
 OUTPUTS_ESTRESADOS_PATH = build_path([SALIDAS_EXPERIMENTOS_PATH, "sim_outputs"])
 helper_functions = HelperFunctions()
 
+helper_functions.ensure_directory_exists(SALIDAS_EXPERIMENTOS_PATH)
 helper_functions.ensure_directory_exists(INPUTS_ESTRESADOS_PATH)
 helper_functions.ensure_directory_exists(OUTPUTS_ESTRESADOS_PATH)
 
@@ -76,6 +78,14 @@ df_input = df_input.rename(columns={'period': 'time_period'})
 df_input = helper_functions.add_missing_cols(cr, df_input.copy())
 df_input = df_input.drop(columns='iso_code3')
 
+# Ensure 'lndu_reallocation_factor' column exists and set all its values to 0
+if 'lndu_reallocation_factor' not in df_input.columns:
+    print('Adding lndu_reallocation_factor to the df')
+    df_input['lndu_reallocation_factor'] = 0
+else:
+    print("Setting lndu_reallocation_factor to 0")
+    df_input['lndu_reallocation_factor'] = 0
+
 # Obtain the column names that we are going to sample 
 columns_all_999 = df_input.columns[(df_input == -999).any()].tolist()
 pij_cols = [col for col in df_input.columns if col.startswith('pij')]
@@ -83,10 +93,10 @@ cols_to_avoid = pij_cols + frac_vars_special_cases_list + columns_all_999 + empi
 cols_to_stress = helper_functions.get_indicators_col_names(df_input, cols_with_issue=cols_to_avoid)
 
 # Defines upper bound to pass to GenerateLHS
-u_bound = 2
+u_bound = 4
 
 # Defines number of sample vectors that GenerateLHS will create
-n_arrays = 100
+n_arrays = 3000
 sampling_file_path = os.path.join('sampling_files', f'sample_scaled_{n_arrays}_{u_bound}.pickle') 
 
 # Generates sampling matrix

@@ -17,9 +17,12 @@ class HelperFunctions:
         print(f"------------------------ EXECUTION TIME: {execution_time} seconds ------------------------")
 
     def check_land_use_factor(self, ssp_object, target_country):
-        dict_scendata = ssp_object.generate_scenario_database_from_primary_key(0)
-        df_inputs_check = dict_scendata.get(target_country) # Change the name of the country if running a different one
-        lndu_realloc_fact_df = ssp_object.model_attributes.extract_model_variable(df_inputs_check, "Land Use Yield Reallocation Factor")
+        try:
+            dict_scendata = ssp_object.generate_scenario_database_from_primary_key(0)
+            df_inputs_check = dict_scendata.get(target_country) # Change the name of the country if running a different one
+            lndu_realloc_fact_df = ssp_object.model_attributes.extract_model_variable(df_inputs_check, "Land Use Yield Reallocation Factor")
+        except:
+            print("Error in lndu factor...")
 
         if lndu_realloc_fact_df['lndu_reallocation_factor'].sum() > 0:
             raise ValueError(" --------------- The sum of 'lndu_reallocation_factor' is greater than 0. Script terminated. -----------------")

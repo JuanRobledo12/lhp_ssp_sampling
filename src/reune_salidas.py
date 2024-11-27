@@ -7,12 +7,13 @@ from utils import HelperFunctions
 helper_functions = HelperFunctions()
 
 # Ensure the user has provided a command-line argument
-if len(sys.argv) < 2:
-    raise ValueError("No country name provided. Please pass a country name as a command-line argument.")
+if len(sys.argv) < 3:
+    raise ValueError("No country name or batch id provided. Please pass a country name and  batch_id as a command-line argument.")
 
 
 country_name = sys.argv[1]
-print('Creating feature variables and target variables csv files for ', country_name)
+batch_id = sys.argv[2]
+print(f'Creating feature variables and target variables csv files for {country_name} in batch id {batch_id}')
 
 ## Define paths
 
@@ -20,7 +21,7 @@ FILE_PATH = os.getcwd()
 build_path = lambda PATH : os.path.abspath(os.path.join(*PATH))
 
 OUTPUT_PATH = build_path([FILE_PATH, "..", "output"])
-SALIDAS_EXPERIMENTOS_PATH = build_path([OUTPUT_PATH, "experiments"])
+SALIDAS_EXPERIMENTOS_PATH = build_path([OUTPUT_PATH, f"experiments_batch_{country_name}_{batch_id}"])
 COMPLETE_DF_OUTPUT_PATH = build_path([SALIDAS_EXPERIMENTOS_PATH, "grouped_data"]) 
 
 INPUTS_ESTRESADOS_PATH = build_path([SALIDAS_EXPERIMENTOS_PATH, "sim_inputs"])
