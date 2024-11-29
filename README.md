@@ -24,9 +24,9 @@ To generate simulations
 
 ```
 cd src
-bash run_sim_batch.sh {initial_sim_id} {final_sim_id} {country_name} {batch_id}
+bash run_sim_batch.sh {initial_sim_id} {final_sim_id} {yaml_file_name}
 # Example
-bash run_sim_batch.sh 0 100 croatia 1
+bash run_sim_batch.sh 0 100 config_croatia_batch_2.yaml
 ```
 
 To group inputs and outputs

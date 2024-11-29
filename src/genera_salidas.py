@@ -38,15 +38,21 @@ import sisepuede as si
 # Record the start time
 start_time = time.time()
 
+# Import helper functiosns
+helper_functions = HelperFunctions()
 
+# Defining some important parameters
+experiment_id = int(sys.argv[1])
+param_file_name = sys.argv[2]
 
-## Define paths and global variables
-target_country = sys.argv[1]
-experiment_id = int(sys.argv[2])
-batch_id = int(sys.argv[3])
+param_dict = helper_functions.get_parameters_from_yaml(os.path.join('config_files', param_file_name)) 
+
+target_country = param_dict['target_country']
+batch_id = param_dict['batch_id']
 
 print(f"Executing Python Script for {target_country} with experiment id {experiment_id} for batch id {batch_id}")
 
+# Defining paths
 FILE_PATH = os.getcwd()
 build_path = lambda PATH : os.path.abspath(os.path.join(*PATH))
 
@@ -61,7 +67,7 @@ SALIDAS_EXPERIMENTOS_PATH = build_path([OUTPUT_PATH, f"experiments_batch_{target
 
 INPUTS_ESTRESADOS_PATH = build_path([SALIDAS_EXPERIMENTOS_PATH, "sim_inputs"])
 OUTPUTS_ESTRESADOS_PATH = build_path([SALIDAS_EXPERIMENTOS_PATH, "sim_outputs"])
-helper_functions = HelperFunctions()
+
 
 helper_functions.ensure_directory_exists(SALIDAS_EXPERIMENTOS_PATH)
 helper_functions.ensure_directory_exists(INPUTS_ESTRESADOS_PATH)
@@ -93,10 +99,10 @@ cols_to_avoid = pij_cols + frac_vars_special_cases_list + columns_all_999 + empi
 cols_to_stress = helper_functions.get_indicators_col_names(df_input, cols_with_issue=cols_to_avoid)
 
 # Defines upper bound to pass to GenerateLHS
-u_bound = 4
+u_bound = param_dict['u_bound']
 
 # Defines number of sample vectors that GenerateLHS will create
-n_arrays = 3000
+n_arrays = param_dict['n_arrays']
 sampling_file_path = os.path.join('sampling_files', f'sample_scaled_{n_arrays}_{u_bound}.pickle') 
 
 # Generates sampling matrix

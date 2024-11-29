@@ -1,5 +1,6 @@
 import time
 import os
+import yaml
 
 class HelperFunctions:
     
@@ -104,3 +105,18 @@ class HelperFunctions:
             print(f"Created directory: {path}")
         else:
             print(f"Directory already exists: {path}")
+
+    # Load configuration from a YAML file
+    def get_parameters_from_yaml(self, file_path):
+        with open(file_path, 'r') as file:
+            config = yaml.safe_load(file)
+
+        param_dict = {
+            'target_country': config['target_country'],
+            'batch_id': config['batch_id'],
+            'u_bound': config['u_bound'],
+            'n_arrays': config['n_arrays']
+        }
+        return param_dict
+        
+
