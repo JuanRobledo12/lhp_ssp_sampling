@@ -243,6 +243,12 @@ OUTPUTS_ESTRESADOS_FILE_PATH = build_path([OUTPUTS_ESTRESADOS_PATH, f"sim_output
 
 
 df_out = ssp.read_output(None)
+
+sample_id = f'{batch_id}-{experiment_id}'
+
+df_out['sample_id'] = sample_id
+stressed_df['sample_id'] = sample_id
+
 df_out.to_csv(OUTPUTS_ESTRESADOS_FILE_PATH, index=False)
 stressed_df.to_csv(INPUTS_ESTRESADOS_FILE_PATH, index=False)
 

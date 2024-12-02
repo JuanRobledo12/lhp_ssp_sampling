@@ -47,7 +47,7 @@ df_features = pd.concat([pd.read_csv(i).iloc[[0]] for i in glob.glob(INPUTS_ESTR
 df_features = helper_functions.create_id_column(df_features.copy())
 df_targets = helper_functions.create_id_column(df_targets.copy())
 
-df_targets_only_emission = df_targets[[col for col in df_targets.columns if col.startswith('emission_co2e_subsector')]]
+df_targets_only_emission = df_targets[[col for col in df_targets.columns if (col.startswith('emission_co2e_subsector') or col =='sample_id')]]
 
 # Imputing nan values
 df_targets_only_emission_imputed = df_targets_only_emission.apply(lambda col: col.fillna(col.median()) if col.dtype in ['float64', 'int64'] else col)
