@@ -1,6 +1,8 @@
 import time
 import os
 import yaml
+import numpy as np
+import pandas as pd
 
 ##  IMPORT SISEPUEDE EXAMPLES AND TRANSFORMERS
 
@@ -129,6 +131,55 @@ class HelperFunctions:
         }
         return param_dict
     
+    def normalize_frac_vars(self, stressed_df, cols_to_avoid):
+
+        df = stressed_df.copy()
+
+        # Normalizing frac_ var groups using softmax
+        df_frac_vars = pd.read_excel('frac_vars.xlsx', sheet_name='frac_vars_no_special_cases')
+        need_norm_prefix = df_frac_vars.frac_var_name_prefix.unique()
+
+        random_scale = 1e-2  # Scale for random noise
+        epsilon = 1e-6
+
+        for subgroup in need_norm_prefix:
+            subgroup_cols = [i for i in df.columns if subgroup in i]
+            
+            # Skip normalization for columns in cols_to_avoid
+            if any(col in cols_to_avoid for col in subgroup_cols):
+                continue
+
+            # Check if the sum of the group is zero or too small
+            group_sum = df[subgroup_cols].sum(axis=1)
+            is_zero_sum = group_sum < epsilon
+
+            # Add random variability for zero-sum groups
+            if is_zero_sum.any():
+                noise = np.random.uniform(0, random_scale, size=(is_zero_sum.sum(), len(subgroup_cols)))
+                df.loc[is_zero_sum, subgroup_cols] = noise
+
+            # Apply softmax normalization
+            df[subgroup_cols] = df[subgroup_cols].apply(
+                lambda row: np.exp(row) / np.exp(row).sum(), axis=1
+            )
+
+        # Special case for ce_problematic
+        ce_problematic = [
+            'frac_waso_biogas_food',
+            'frac_waso_biogas_sludge',
+            'frac_waso_biogas_yard',
+            'frac_waso_compost_food',
+            'frac_waso_compost_methane_flared',
+            'frac_waso_compost_sludge',
+            'frac_waso_compost_yard'
+        ]
+
+        # Apply softmax normalization for ce_problematic
+        df[ce_problematic] = df[ce_problematic].apply(
+            lambda row: np.exp(row) / np.exp(row).sum(), axis=1
+        )
+
+        return df
 
 class SSPModelForCalibartion:
 
@@ -210,8 +261,14 @@ class SSPModelForCalibartion:
 
 
         # Returns only subsector outputs
-        df_out = ssp.read_output(None)
-        df_target = df_out[[col for col in df_out.columns if col.startswith('emission_co2e_subsector')]]
+        try:
+            df_out = ssp.read_output(None)
+            if df_out is None or df_out.empty:
+                raise ValueError("The output DataFrame is None or empty. Returning an empty DataFrame.")
+            df_target = df_out[[col for col in df_out.columns if col.startswith('emission_co2e_subsector')]]
+        except Exception as e:
+            print(f"Warning: {e}")
+            df_target = pd.DataFrame()
 
         return df_target
 

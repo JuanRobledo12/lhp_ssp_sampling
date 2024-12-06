@@ -64,15 +64,19 @@ lb = np.zeros(n_vars)  # Lower bound (0)
 ub = np.ones(n_vars) * 2  # Upper bound (2)
 
 # Simulation model
-def simulation_model(df_scaled: pd.DataFrame) -> np.ndarray:
+def simulation_model(df_scaled: pd.DataFrame) -> pd.DataFrame:
     """
     Function that simulates outputs based on the scaled inputs.
-    Replace this with the actual simulation function.
     """
-    ssp_model = SSPModelForCalibartion(SSP_OUTPUT_PATH=SSP_OUTPUT_PATH , target_country=target_country)
     emissions_df = ssp_model.run_ssp_simulation(df_scaled)
-    emissions = emissions_df.iloc[0]
+    
+    # Handle empty DataFrame
+    if emissions_df is None or emissions_df.empty:
+        print("Warning: Emissions DataFrame is empty. Returning an empty DataFrame.")
+        return pd.DataFrame()
 
+    emissions = emissions_df.iloc[0]
+    
     # Convert the series into a DataFrame and extract the subsector suffix
     emissions = emissions.rename_axis('index').reset_index()
     emissions['Subsector'] = emissions['index'].str.replace('emission_co2e_subsector_total_', '', regex=False)
@@ -90,75 +94,60 @@ def objective_function(scaling_vector: np.ndarray) -> float:
     stressed_df = df_input.copy()
     stressed_df[cols_to_stress] = df_input[cols_to_stress] * scaling_vector
 
-    # TODO: Abstract this part in a method
+    # Normalize fractional columns
+    stressed_df_with_norm = helper_functions.normalize_frac_vars(stressed_df, cols_to_avoid)
 
-    # Normalizing frac_ var groups using softmax
-    df_frac_vars = pd.read_excel('frac_vars.xlsx', sheet_name='frac_vars_no_special_cases')
-    need_norm_prefix = df_frac_vars.frac_var_name_prefix.unique()
-
-    random_scale = 1e-2  # Scale for random noise
-    epsilon = 1e-6
-
-    for subgroup in need_norm_prefix:
-        subgroup_cols = [i for i in stressed_df.columns if subgroup in i]
-        
-        # Skip normalization for columns in cols_to_avoid
-        if any(col in cols_to_avoid for col in subgroup_cols):
-            continue
-
-        # Check if the sum of the group is zero or too small
-        group_sum = stressed_df[subgroup_cols].sum(axis=1)
-        is_zero_sum = group_sum < epsilon
-
-        # Add random variability for zero-sum groups
-        if is_zero_sum.any():
-            noise = np.random.uniform(0, random_scale, size=(is_zero_sum.sum(), len(subgroup_cols)))
-            stressed_df.loc[is_zero_sum, subgroup_cols] = noise
-
-        # Apply softmax normalization
-        stressed_df[subgroup_cols] = stressed_df[subgroup_cols].apply(
-            lambda row: np.exp(row) / np.exp(row).sum(), axis=1
-        )
-
-    # Special case for ce_problematic
-    ce_problematic = [
-        'frac_waso_biogas_food',
-        'frac_waso_biogas_sludge',
-        'frac_waso_biogas_yard',
-        'frac_waso_compost_food',
-        'frac_waso_compost_methane_flared',
-        'frac_waso_compost_sludge',
-        'frac_waso_compost_yard'
-    ]
-
-    # Apply softmax normalization for ce_problematic
-    stressed_df[ce_problematic] = stressed_df[ce_problematic].apply(
-        lambda row: np.exp(row) / np.exp(row).sum(), axis=1
-    )
-
-    
     # Simulate outputs
-    simulated_outputs = simulation_model(stressed_df)
+    simulated_outputs = simulation_model(stressed_df_with_norm)
+    
+    # Handle empty simulation outputs
+    if simulated_outputs.empty:
+        high_mse = 1e6  # Assign a high MSE for garbage outputs
+        print("Simulation returned an empty DataFrame. Setting MSE to a high value.")
+        log_to_csv(scaling_vector, high_mse)
+        return high_mse
+
+    # Load ground truth data
     sectoral_diff_report_df = pd.read_csv('sectoral_diff_report.csv')
 
     # Merge the series DataFrame with the original DataFrame
     merged_df = pd.merge(sectoral_diff_report_df, simulated_outputs[['Subsector', 'sim_value']], on='Subsector', how='left')
-    
+
     # Calculate error (e.g., Mean Squared Error)
     mse = np.mean((merged_df['sim_value'] - merged_df['Edgar_value']) ** 2)
-    print(30*'*')
+    print(30 * '*')
     print(f"===================  Current MSE: {mse} ==================")
-    print(30*'*')
+    print(30 * '*')
+
+    # Log the results
+    log_to_csv(scaling_vector, mse)
     return mse
 
+# Function to log MSE and scaling vector to a CSV file
+def log_to_csv(scaling_vector: np.ndarray, mse: float):
+    """
+    Logs the MSE and scaling vector to a CSV file.
+    """
+    log_data = {'MSE': [mse], **{f'scale_{i}': [val] for i, val in enumerate(scaling_vector)}}
+    log_df = pd.DataFrame(log_data)
+    
+    # Append to the CSV file or create it if it doesn't exist
+    log_file = 'optimization_log.csv'
+    try:
+        log_df.to_csv(log_file, mode='a', header=not pd.io.common.file_exists(log_file), index=False)
+        print(f"Logged current MSE and scaling vector to {log_file}")
+    except Exception as e:
+        print(f"Error logging data to CSV: {e}")
+
+ssp_model = SSPModelForCalibartion(SSP_OUTPUT_PATH=SSP_OUTPUT_PATH , target_country=target_country)
 
 # Run PSO to find optimal scaling vector
 best_scaling_vector, best_error = pso(
     objective_function,  # Objective function
     lb,  # Lower bounds
     ub,  # Upper bounds
-    swarmsize = 50,  # Number of particles in the swarm
-    maxiter = 2,  # Maximum iterations
+    swarmsize = 1,  # Number of particles in the swarm
+    maxiter = 1,  # Maximum iterations
     debug=True  # Display progress
 )
 
