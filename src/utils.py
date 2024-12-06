@@ -2,6 +2,16 @@ import time
 import os
 import yaml
 
+##  IMPORT SISEPUEDE EXAMPLES AND TRANSFORMERS
+
+from sisepuede.manager.sisepuede_examples import SISEPUEDEExamples
+from sisepuede.manager.sisepuede_file_structure import SISEPUEDEFileStructure
+import sisepuede.core.support_classes as sc
+import sisepuede.transformers as trf
+import sisepuede.utilities._plotting as spu
+import sisepuede.utilities._toolbox as sf
+import sisepuede as si
+
 class HelperFunctions:
     
     def __init__(self) -> None:
@@ -118,5 +128,90 @@ class HelperFunctions:
             'n_arrays': config['n_arrays']
         }
         return param_dict
+    
+
+class SSPModelForCalibartion:
+
+    def __init__(self, SSP_OUTPUT_PATH, target_country):
         
+        ##  SETUP SOME SISEPUEDE STUFF
+        self.file_struct = SISEPUEDEFileStructure()
+
+        self.matt = self.file_struct.model_attributes
+        self.regions = sc.Regions(self.matt)
+        self.time_periods = sc.TimePeriods(self.matt)
+        self.examples = SISEPUEDEExamples()
+
+        # Set up other important vars
+        self.SSP_OUTPUT_PATH = SSP_OUTPUT_PATH
+
+        self.target_country = target_country
+
+
+
+    def run_ssp_simulation(self, stressed_df):
+        # Load SSP objects with input data and transformation folders
+        transformers = trf.transformers.Transformers(
+            {},
+            df_input = stressed_df,
+        )
+
+        # set an ouput path and instantiate
+
+        trf.instantiate_default_strategy_directory(
+                transformers,
+                self.SSP_OUTPUT_PATH,
+            )
+
+        # then, you can load this back in after modifying (play around with it)
+        transformations = trf.Transformations(
+                self.SSP_OUTPUT_PATH,
+                transformers = transformers,
+            )
+
+        strategies = trf.Strategies(
+                transformations,
+                export_path = "transformations",
+                prebuild = True,
+            )
+
+        df_vargroups = self.examples("variable_trajectory_group_specification")
+
+        strategies.build_strategies_to_templates(
+                df_trajgroup = df_vargroups,
+                include_simplex_group_as_trajgroup = True,
+                strategies = [0, 1000],
+            )
+
+        ssp = si.SISEPUEDE(
+                "calibrated",
+                initialize_as_dummy = False, # no connection to Julia is initialized if set to True
+                regions = [self.target_country],
+                db_type = "csv",
+                strategies = strategies,
+                try_exogenous_xl_types_in_variable_specification = True,
+            )
+
+        # Create parameters dict for the model to run
+        dict_run = {
+                ssp.key_future: [0],
+                ssp.key_design: [0],
+                ssp.key_strategy: [
+                    0,
+                    1000,
+                ],
+            }
+
+        # we'll save inputs since we're doing a small set of runs
+        ssp.project_scenarios(
+                dict_run,
+                save_inputs = True,
+            )
+
+
+        # Returns only subsector outputs
+        df_out = ssp.read_output(None)
+        df_target = df_out[[col for col in df_out.columns if col.startswith('emission_co2e_subsector')]]
+
+        return df_target
 

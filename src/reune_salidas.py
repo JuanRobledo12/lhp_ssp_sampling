@@ -39,7 +39,7 @@ PATHS_OUTPUT_CSV_FILES.sort()
 PATHS_INPUT_CSV_FILES.sort()
 
 if len(PATHS_OUTPUT_CSV_FILES) != len(PATHS_INPUT_CSV_FILES):
-            raise ValueError("The amount of input files does not match the amount of output files.")
+    raise ValueError("The amount of input files does not match the amount of output files.")
 
 df_targets = pd.concat([pd.read_csv(i).iloc[[0]] for i in glob.glob(OUTPUTS_ESTRESADOS_PATH+"/*.csv")], ignore_index = True)
 df_features = pd.concat([pd.read_csv(i).iloc[[0]] for i in glob.glob(INPUTS_ESTRESADOS_PATH+"/*.csv")], ignore_index = True)
