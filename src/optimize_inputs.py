@@ -108,7 +108,7 @@ def objective_function(scaling_vector: np.ndarray) -> float:
         return high_mse
 
     # Load ground truth data
-    sectoral_diff_report_df = pd.read_csv('sectoral_diff_report.csv')
+    sectoral_diff_report_df = pd.read_csv('misc_files/sectoral_diff_report.csv')
 
     # Merge the series DataFrame with the original DataFrame
     merged_df = pd.merge(sectoral_diff_report_df, simulated_outputs[['Subsector', 'sim_value']], on='Subsector', how='left')
@@ -132,7 +132,7 @@ def log_to_csv(scaling_vector: np.ndarray, mse: float):
     log_df = pd.DataFrame(log_data)
     
     # Append to the CSV file or create it if it doesn't exist
-    log_file = 'optimization_log.csv'
+    log_file = '../opt_output/optimization_log.csv'
     try:
         log_df.to_csv(log_file, mode='a', header=not pd.io.common.file_exists(log_file), index=False)
         print(f"Logged current MSE and scaling vector to {log_file}")
@@ -146,8 +146,8 @@ best_scaling_vector, best_error = pso(
     objective_function,  # Objective function
     lb,  # Lower bounds
     ub,  # Upper bounds
-    swarmsize = 1,  # Number of particles in the swarm
-    maxiter = 1,  # Maximum iterations
+    swarmsize = 50,  # Number of particles in the swarm
+    maxiter = 100,  # Maximum iterations
     debug=True  # Display progress
 )
 

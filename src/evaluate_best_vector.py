@@ -1,9 +1,5 @@
 """
-TODO:
-- Now we can take the special cases we added to info_grupos back to frac_vars.xlsx since we have them in cols to avoid.
-- The HelperFunctions can raise Errors or warning that help us identify null values, mismatching vars and things like that.
-- We can create the sim_inputs, sim_outputs folder automatically if they do not exist.
-- Add some safety guards to the argv params son the code raises an error if they aren't passed.
+Code to evaluate the best LHS vector
 """
 
 import copy
@@ -41,16 +37,16 @@ start_time = time.time()
 # Import helper functiosns
 helper_functions = HelperFunctions()
 
-# Defining some important parameters
-experiment_id = int(sys.argv[1])
-param_file_name = sys.argv[2]
+# # Defining some important parameters
+# experiment_id = int(sys.argv[1])
+# param_file_name = sys.argv[2]
 
-param_dict = helper_functions.get_parameters_from_yaml(os.path.join('config_sample_gen', param_file_name)) 
+# param_dict = helper_functions.get_parameters_from_yaml(os.path.join('config_sample_gen', param_file_name)) 
 
-target_country = param_dict['target_country']
-batch_id = param_dict['batch_id']
+target_country = 'croatia'
+# batch_id = param_dict['batch_id']
 
-print(f"Executing Python Script for {target_country} with experiment id {experiment_id} for batch id {batch_id}")
+print("Evaluating best vector")
 
 # Defining paths
 FILE_PATH = os.getcwd()
@@ -63,15 +59,15 @@ SSP_OUTPUT_PATH = build_path([OUTPUT_PATH, "ssp"])
 
 REAL_DATA_FILE_PATH = build_path([DATA_PATH, "real_data.csv"]) 
 
-SALIDAS_EXPERIMENTOS_PATH = build_path([OUTPUT_PATH, f"experiments_batch_{target_country}_{batch_id}"]) 
+# SALIDAS_EXPERIMENTOS_PATH = build_path([OUTPUT_PATH, f"experiments_batch_{target_country}_{batch_id}"]) 
 
-INPUTS_ESTRESADOS_PATH = build_path([SALIDAS_EXPERIMENTOS_PATH, "sim_inputs"])
-OUTPUTS_ESTRESADOS_PATH = build_path([SALIDAS_EXPERIMENTOS_PATH, "sim_outputs"])
+# INPUTS_ESTRESADOS_PATH = build_path([SALIDAS_EXPERIMENTOS_PATH, "sim_inputs"])
+# OUTPUTS_ESTRESADOS_PATH = build_path([SALIDAS_EXPERIMENTOS_PATH, "sim_outputs"])
 
 
-helper_functions.ensure_directory_exists(SALIDAS_EXPERIMENTOS_PATH)
-helper_functions.ensure_directory_exists(INPUTS_ESTRESADOS_PATH)
-helper_functions.ensure_directory_exists(OUTPUTS_ESTRESADOS_PATH)
+# helper_functions.ensure_directory_exists(SALIDAS_EXPERIMENTOS_PATH)
+# helper_functions.ensure_directory_exists(INPUTS_ESTRESADOS_PATH)
+# helper_functions.ensure_directory_exists(OUTPUTS_ESTRESADOS_PATH)
 
 ### Load Costa Rica Example df to fill out data gaps in our input df
 
@@ -84,13 +80,13 @@ df_input = df_input.rename(columns={'period': 'time_period'})
 df_input = helper_functions.add_missing_cols(cr, df_input.copy())
 df_input = df_input.drop(columns='iso_code3')
 
-# Ensure 'lndu_reallocation_factor' column exists and set all its values to 0
-if 'lndu_reallocation_factor' not in df_input.columns:
-    print('Adding lndu_reallocation_factor to the df')
-    df_input['lndu_reallocation_factor'] = 0
-else:
-    print("Setting lndu_reallocation_factor to 0")
-    df_input['lndu_reallocation_factor'] = 0
+# # Ensure 'lndu_reallocation_factor' column exists and set all its values to 0
+# if 'lndu_reallocation_factor' not in df_input.columns:
+#     print('Adding lndu_reallocation_factor to the df')
+#     df_input['lndu_reallocation_factor'] = 0
+# else:
+#     print("Setting lndu_reallocation_factor to 0")
+#     df_input['lndu_reallocation_factor'] = 0
 
 # Obtain the column names that we are going to sample 
 columns_all_999 = df_input.columns[(df_input == -999).any()].tolist()
@@ -98,28 +94,24 @@ pij_cols = [col for col in df_input.columns if col.startswith('pij')]
 cols_to_avoid = pij_cols + frac_vars_special_cases_list + columns_all_999 + empirical_vars_to_avoid
 cols_to_stress = helper_functions.get_indicators_col_names(df_input, cols_with_issue=cols_to_avoid)
 
-# Defines upper bound to pass to GenerateLHS
-u_bound = param_dict['u_bound']
+# Here we obtain the best found vector
+df_opt = pd.read_csv('../opt_output/optimization_log.csv')
 
-# Defines number of sample vectors that GenerateLHS will create
-n_arrays = param_dict['n_arrays']
-sampling_file_path = os.path.join('sampling_files', f'sample_scaled_{n_arrays}_{u_bound}.pickle') 
+# Find the index of the row with the minimum MSE
+min_mse_index = df_opt['MSE'].idxmin()
 
-# Generates sampling matrix
-if not os.path.exists(sampling_file_path):
-    # Generates sampling matrix if it does not exist
-    generate_sample = GenerateLHS(n_arrays, n_var=len(cols_to_stress), u_bound=u_bound)
-    generate_sample.generate_sample()
+# Extract the corresponding scale values (drop the 'MSE' column)
+scale_values = df_opt.loc[min_mse_index].drop('MSE').values
 
-# Load the sampling matrix
-with open(sampling_file_path, 'rb') as handle:
-    sample_scaled = pickle.load(handle)
+# Convert to a NumPy array
+scale_array = np.array(scale_values)
+
 
 # Creating new df with the sampled data
 stressed_df = df_input.copy()
 
 # Apply sampling to create stressed data
-stressed_df[cols_to_stress] = (df_input[cols_to_stress] * sample_scaled[experiment_id]).to_numpy()
+stressed_df[cols_to_stress] = (df_input[cols_to_stress] * scale_array).to_numpy()
 
 # Normalizing frac_ var groups using softmax
 df_frac_vars = pd.read_excel('misc_files/frac_vars.xlsx', sheet_name='frac_vars_no_special_cases')
@@ -218,7 +210,7 @@ ssp = si.SISEPUEDE(
     )
 
 # Checks if the land use reallocation factor is set to 0.0
-helper_functions.check_land_use_factor(ssp_object=ssp, target_country=target_country)
+# helper_functions.check_land_use_factor(ssp_object=ssp, target_country=target_country)
 
 # Create parameters dict for the model to run
 dict_run = {
@@ -237,19 +229,19 @@ ssp.project_scenarios(
     )
 
 
-# Saves input and output
-INPUTS_ESTRESADOS_FILE_PATH = build_path([INPUTS_ESTRESADOS_PATH, f"sim_input_{experiment_id}.csv"])
-OUTPUTS_ESTRESADOS_FILE_PATH = build_path([OUTPUTS_ESTRESADOS_PATH, f"sim_output_{experiment_id}.csv"])
+# # Saves input and output
+# INPUTS_ESTRESADOS_FILE_PATH = build_path([INPUTS_ESTRESADOS_PATH, f"sim_input_{experiment_id}.csv"])
+# OUTPUTS_ESTRESADOS_FILE_PATH = build_path([OUTPUTS_ESTRESADOS_PATH, f"sim_output_{experiment_id}.csv"])
 
 
-df_out = ssp.read_output(None)
+# df_out = ssp.read_output(None)
 
-sample_id = f'{batch_id}-{experiment_id}'
+# sample_id = f'{batch_id}-{experiment_id}'
 
-df_out['sample_id'] = sample_id
-stressed_df['sample_id'] = sample_id
+# df_out['sample_id'] = sample_id
+# stressed_df['sample_id'] = sample_id
 
-df_out.to_csv(OUTPUTS_ESTRESADOS_FILE_PATH, index=False)
-stressed_df.to_csv(INPUTS_ESTRESADOS_FILE_PATH, index=False)
+# df_out.to_csv(OUTPUTS_ESTRESADOS_FILE_PATH, index=False)
+# stressed_df.to_csv(INPUTS_ESTRESADOS_FILE_PATH, index=False)
 
 helper_functions.print_elapsed_time(start_time)
