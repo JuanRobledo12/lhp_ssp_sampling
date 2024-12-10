@@ -131,12 +131,23 @@ class HelperFunctions:
         }
         return param_dict
     
+    def get_parameters_from_opt_yaml(self, file_path):
+        with open(file_path, 'r') as file:
+            config = yaml.safe_load(file)
+
+        param_dict = {
+            'target_country': config['target_country'],
+            'iso_code3': config['iso_code3'],
+            'detailed_diff_report_flag': config['detailed_diff_report_flag']
+        }
+        return param_dict
+    
     def normalize_frac_vars(self, stressed_df, cols_to_avoid):
 
         df = stressed_df.copy()
 
         # Normalizing frac_ var groups using softmax
-        df_frac_vars = pd.read_excel('frac_vars.xlsx', sheet_name='frac_vars_no_special_cases')
+        df_frac_vars = pd.read_excel('misc_files/frac_vars.xlsx', sheet_name='frac_vars_no_special_cases')
         need_norm_prefix = df_frac_vars.frac_var_name_prefix.unique()
 
         random_scale = 1e-2  # Scale for random noise
@@ -183,14 +194,18 @@ class HelperFunctions:
     
 
     def weighted_mse(self, dataframe):
+
+        # Exclude rows where Edgar_value is 0.0 to avoid summing infinite weights
+        filtered_df = dataframe[dataframe['Edgar_value'] != 0.0]
+        
         # Ensure diff is absolute for weights
-        dataframe['weight'] = dataframe['diff'].abs()
+        filtered_df['weight'] = filtered_df['diff'].abs()
         
         # Calculate squared difference between simulation and Edgar_value
-        dataframe['squared_error'] = (dataframe['simulation'] - dataframe['Edgar_value']) ** 2
+        filtered_df['squared_error'] = (filtered_df['simulation'] - filtered_df['Edgar_value']) ** 2
         
         # Weighted MSE calculation
-        weighted_mse_value = (dataframe['squared_error'] * dataframe['weight']).sum() / dataframe['weight'].sum()
+        weighted_mse_value = (filtered_df['squared_error'] * filtered_df['weight']).sum() / filtered_df['weight'].sum()
         return weighted_mse_value
 
 class SSPModelForCalibartion:
@@ -290,12 +305,7 @@ class SectoralDiffReport:
         pass
 
 
-    def generate_diff_reports(self, df_out, iso_code3, refy=2015, ref_primary_id=0):
-
-        # Base directory paths
-        base_path = os.getcwd()  # Set to the current working directory or customize
-        misc_files_path = os.path.join(base_path,"src", "misc_files")
-
+    def generate_diff_reports(self, df_out, iso_code3, misc_files_path, refy=2015, ref_primary_id=0):
 
         # Load mapping table
         mapping = pd.read_csv(os.path.join(misc_files_path, "mapping.csv"))
