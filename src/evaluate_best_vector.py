@@ -44,6 +44,7 @@ helper_functions = HelperFunctions()
 # param_dict = helper_functions.get_parameters_from_yaml(os.path.join('config_sample_gen', param_file_name)) 
 
 target_country = 'croatia'
+use_optimization_log = True  # Set this flag as needed
 # batch_id = param_dict['batch_id']
 
 print("Evaluating best vector")
@@ -94,17 +95,24 @@ pij_cols = [col for col in df_input.columns if col.startswith('pij')]
 cols_to_avoid = pij_cols + frac_vars_special_cases_list + columns_all_999 + empirical_vars_to_avoid
 cols_to_stress = helper_functions.get_indicators_col_names(df_input, cols_with_issue=cols_to_avoid)
 
-# # Here we obtain the best found vector
-# df_opt = pd.read_csv('../opt_output/optimization_log.csv')
 
-# # Find the index of the row with the minimum MSE
-# min_mse_index = df_opt['MSE'].idxmin()
+# Define a boolean flag to choose between optimization_log_test and combined_vector
 
-# # Extract the corresponding scale values (drop the 'MSE' column)
-# scale_values = df_opt.loc[min_mse_index].drop('MSE').values
+optimization_log_path = '../opt_output/optimization_log_test.csv'
+combined_vector_path = 'misc_files/combined_vector.npy'
 
-# Convert to a NumPy array
-scale_array = np.load("misc_files/combined_vector.npy")
+if use_optimization_log and os.path.exists(optimization_log_path):
+    # Here we obtain the best found vector
+    df_opt = pd.read_csv(optimization_log_path)
+
+    # Find the index of the row with the minimum MSE
+    min_mse_index = df_opt['MSE'].idxmin()
+
+    # Extract the corresponding scale values (drop the 'MSE' column)
+    scale_array = df_opt.loc[min_mse_index].drop('MSE').values
+else:
+    # Load the combined vector from the .npy file
+    scale_array = np.load(combined_vector_path)
 
 # Creating new df with the sampled data
 stressed_df = df_input.copy()
