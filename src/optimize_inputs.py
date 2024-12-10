@@ -15,7 +15,7 @@ from datetime import datetime
 from pyswarm import pso  # Install with: pip install pyswarm
 warnings.filterwarnings("ignore")
 from info_grupos import empirical_vars_to_avoid, frac_vars_special_cases_list
-from utils import HelperFunctions, SSPModelForCalibartion
+from utils import HelperFunctions, SSPModelForCalibartion, SectoralDiffReport
 from sisepuede.manager.sisepuede_examples import SISEPUEDEExamples
 
 
@@ -31,6 +31,8 @@ helper_functions = HelperFunctions()
 # param_file_name = sys.argv[2]
 
 target_country = 'croatia'
+iso_code3 = "HRV"
+detailed_diff_report_flag = False 
 
 print(f"Optimizing scaling vector")
 
@@ -41,6 +43,7 @@ DATA_PATH = build_path([FILE_PATH, "..", "data"])
 OUTPUT_PATH = build_path([FILE_PATH, "..", "output"])
 REAL_DATA_FILE_PATH = build_path([DATA_PATH, "real_data.csv"])
 SSP_OUTPUT_PATH = build_path([OUTPUT_PATH, "ssp"])
+MISC_FILES_PATH = build_path([FILE_PATH, 'src', 'misc_files'])
 
 # Load input dataset
 examples = SISEPUEDEExamples()
@@ -75,14 +78,7 @@ def simulation_model(df_scaled: pd.DataFrame) -> pd.DataFrame:
         print("Warning: Emissions DataFrame is empty. Returning an empty DataFrame.")
         return pd.DataFrame()
 
-    emissions = emissions_df.iloc[0]
-    
-    # Convert the series into a DataFrame and extract the subsector suffix
-    emissions = emissions.rename_axis('index').reset_index()
-    emissions['Subsector'] = emissions['index'].str.replace('emission_co2e_subsector_total_', '', regex=False)
-    emissions.rename(columns={0: 'sim_value'}, inplace=True)
-
-    return emissions
+    return emissions_df
 
 # Objective function
 def objective_function(scaling_vector: np.ndarray) -> float:
@@ -107,14 +103,17 @@ def objective_function(scaling_vector: np.ndarray) -> float:
         log_to_csv(scaling_vector, high_mse)
         return high_mse
 
-    # Load ground truth data
-    sectoral_diff_report_df = pd.read_csv('misc_files/sectoral_diff_report.csv')
 
-    # Merge the series DataFrame with the original DataFrame
-    merged_df = pd.merge(sectoral_diff_report_df, simulated_outputs[['Subsector', 'sim_value']], on='Subsector', how='left')
+    # Generate diff reports to calculate MSE
+    detailed_diff_report, normal_diff_report = diff_report_helpers.generate_diff_reports(simulated_outputs, iso_code3)
 
-    # Calculate error (e.g., Mean Squared Error)
-    mse = np.mean((merged_df['sim_value'] - merged_df['Edgar_value']) ** 2)
+    # Calculate error (Weighted Mean Squared Error)
+    if detailed_diff_report_flag:
+        mse = helper_functions.weighted_mse(detailed_diff_report)
+
+    else:
+        mse = helper_functions.weighted_mse(normal_diff_report)
+    
     print(30 * '*')
     print(f"===================  Current MSE: {mse} ==================")
     print(30 * '*')
@@ -140,6 +139,7 @@ def log_to_csv(scaling_vector: np.ndarray, mse: float):
         print(f"Error logging data to CSV: {e}")
 
 ssp_model = SSPModelForCalibartion(SSP_OUTPUT_PATH=SSP_OUTPUT_PATH , target_country=target_country)
+diff_report_helpers = SectoralDiffReport()
 
 # Run PSO to find optimal scaling vector
 best_scaling_vector, best_error = pso(

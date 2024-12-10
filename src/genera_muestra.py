@@ -12,14 +12,14 @@ import os
 
 class GenerateLHS:
 
-    def __init__(self, n, n_var, u_bound):
+    def __init__(self, n, n_var, u_bound, seed=42):
         
         # Tamaño de la población
         self.n = n
         # Número de variables
         self.n_var = n_var
 
-        self.engine = LatinHypercube(d=n_var)
+        self.engine = LatinHypercube(d=n_var, seed=seed)
         self.sample = self.engine.random(n=n)
         self.u_bound_scalar = u_bound
 

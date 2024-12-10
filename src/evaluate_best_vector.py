@@ -80,13 +80,13 @@ df_input = df_input.rename(columns={'period': 'time_period'})
 df_input = helper_functions.add_missing_cols(cr, df_input.copy())
 df_input = df_input.drop(columns='iso_code3')
 
-# # Ensure 'lndu_reallocation_factor' column exists and set all its values to 0
-# if 'lndu_reallocation_factor' not in df_input.columns:
-#     print('Adding lndu_reallocation_factor to the df')
-#     df_input['lndu_reallocation_factor'] = 0
-# else:
-#     print("Setting lndu_reallocation_factor to 0")
-#     df_input['lndu_reallocation_factor'] = 0
+# Ensure 'lndu_reallocation_factor' column exists and set all its values to 0
+if 'lndu_reallocation_factor' not in df_input.columns:
+    print('Adding lndu_reallocation_factor to the df')
+    df_input['lndu_reallocation_factor'] = 0
+else:
+    print("Setting lndu_reallocation_factor to 0")
+    df_input['lndu_reallocation_factor'] = 0
 
 # Obtain the column names that we are going to sample 
 columns_all_999 = df_input.columns[(df_input == -999).any()].tolist()
@@ -94,18 +94,17 @@ pij_cols = [col for col in df_input.columns if col.startswith('pij')]
 cols_to_avoid = pij_cols + frac_vars_special_cases_list + columns_all_999 + empirical_vars_to_avoid
 cols_to_stress = helper_functions.get_indicators_col_names(df_input, cols_with_issue=cols_to_avoid)
 
-# Here we obtain the best found vector
-df_opt = pd.read_csv('../opt_output/optimization_log.csv')
+# # Here we obtain the best found vector
+# df_opt = pd.read_csv('../opt_output/optimization_log.csv')
 
-# Find the index of the row with the minimum MSE
-min_mse_index = df_opt['MSE'].idxmin()
+# # Find the index of the row with the minimum MSE
+# min_mse_index = df_opt['MSE'].idxmin()
 
-# Extract the corresponding scale values (drop the 'MSE' column)
-scale_values = df_opt.loc[min_mse_index].drop('MSE').values
+# # Extract the corresponding scale values (drop the 'MSE' column)
+# scale_values = df_opt.loc[min_mse_index].drop('MSE').values
 
 # Convert to a NumPy array
-scale_array = np.array(scale_values)
-
+scale_array = np.load("misc_files/combined_vector.npy")
 
 # Creating new df with the sampled data
 stressed_df = df_input.copy()
@@ -210,7 +209,7 @@ ssp = si.SISEPUEDE(
     )
 
 # Checks if the land use reallocation factor is set to 0.0
-# helper_functions.check_land_use_factor(ssp_object=ssp, target_country=target_country)
+helper_functions.check_land_use_factor(ssp_object=ssp, target_country=target_country)
 
 # Create parameters dict for the model to run
 dict_run = {
