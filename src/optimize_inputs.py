@@ -51,6 +51,7 @@ param_dict = helper_functions.get_parameters_from_opt_yaml(build_path([OPT_CONFI
 target_country = param_dict['target_country']
 iso_code3 = param_dict['iso_code3']
 detailed_diff_report_flag = param_dict['detailed_diff_report_flag'] 
+unique_id = datetime.now().strftime("%Y%m%d%H%M%S")
 
 logging.info(f"Starting optimization for {target_country} (ISO code: {iso_code3}). Detailed diff report: {'enabled' if detailed_diff_report_flag else 'disabled'}.")
 
@@ -138,7 +139,6 @@ def log_to_csv(scaling_vector: np.ndarray, mse: float):
     log_df = pd.DataFrame(log_data)
     
     # Append to the CSV file or create it if it doesn't exist
-    unique_id = datetime.now().strftime("%Y%m%d%H%M%S")
     log_file = build_path([OPT_OUTPUT_PATH, f"opt_results_{target_country}_{unique_id}.csv"])
     try:
         log_df.to_csv(log_file, mode='a', header=not pd.io.common.file_exists(log_file), index=False)
